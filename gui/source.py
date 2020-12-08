@@ -7,6 +7,7 @@ import vlc
 import csv
 import time
 import sys
+import os.path
 import threading
 # import _thread
 from PyQt5 import QtCore
@@ -47,7 +48,6 @@ class ClickQLable(QLabel):
             QTimer.singleShot(QApplication.instance().doubleClickInterval(),
                               self.performSingleClickAction)
         else:
-            # Realizar acción de doble clic.
             self.clicked.emit(self.now_click)
     
     def mouseDoubleClickEvent(self, event):
@@ -312,16 +312,25 @@ class MainWindow(QMainWindow):
             self._link = self.collectionhref[atrkey]
             self._title_link = [self._title,self._link]
             
-            with open('.\data\My_favorites.csv','r',newline='') as open_fave:
-                file_reader = csv.reader(open_fave) #read  
-                if self._title_link not in file_reader:
-                    self.keybutton  = QPushButton("⭐",self)
-                    self.keybutton.setEnabled(True)
-                
-                    self.keybutton.setStyleSheet("background-color: blue; color:yellow; border-color:rgb(218, 165, 32); font:  20px; max-width: 30px; min-height:30px; ")
-                    self.GridLayout.addWidget(self.keybutton,num_atr,2)
-                    self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
-                    self.keybutton.setToolTip(self.collectionhref[atrkey])
+            if os.path.exists('My_favorites.csv'):
+                with open('My_favorites.csv','r',newline='') as open_fave:
+                    file_reader = csv.reader(open_fave) #read  
+                    if self._title_link not in file_reader:
+                        self.keybutton  = QPushButton("⭐",self)
+                        self.keybutton.setEnabled(True)
+                    
+                        self.keybutton.setStyleSheet("background-color: blue; color:yellow; border-color:rgb(218, 165, 32); font:  20px; max-width: 30px; min-height:30px; ")
+                        self.GridLayout.addWidget(self.keybutton,num_atr,2)
+                        self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
+                        self.keybutton.setToolTip(self.collectionhref[atrkey])
+            else:
+                self.keybutton  = QPushButton("⭐",self)
+                self.keybutton.setEnabled(True)
+            
+                self.keybutton.setStyleSheet("background-color: blue; color:yellow; border-color:rgb(218, 165, 32); font:  20px; max-width: 30px; min-height:30px; ")
+                self.GridLayout.addWidget(self.keybutton,num_atr,2)
+                self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
+                self.keybutton.setToolTip(self.collectionhref[atrkey])
                     
             
             #--------------------------------------------------

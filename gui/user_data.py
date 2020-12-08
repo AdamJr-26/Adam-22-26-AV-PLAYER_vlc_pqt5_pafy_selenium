@@ -24,7 +24,7 @@ class User_Data(QDialog):
         
         self.save_title = title
         self.save_link = save_link
-        self.__add_new = [self.save_title,self.save_link]
+        self.__add_new = [self.save_title,self.save_link, self._getThumb()]
         
             
     def add_(self):
@@ -40,26 +40,33 @@ class User_Data(QDialog):
                     self.link_writer.writerow(self.__add_new)    
                     self.informationBox_added_link(self.save_title)
                     
+                for row in file_reader:
+                    print(row[2])
                     
         else: # create new file
             with open('My_favorites.csv','w') as add_fave:
                 self.link_writer = csv.writer(add_fave,  delimiter=',')
-                header = ['Titles', 'Links','thumbnail directory']
+                header = ['Titles', 'Links','thumbnail_binary']
                 self.link_writer.writerow(header)
       
     def _getThumb(self):        
         self.Vthumbs = pafy.new(self.save_link)         
         Turl = self.Vthumbs.thumb
         data = urllib.request.urlopen(Turl).read()
-        print(data)
+        
         links = requests.get(Turl)
         #with open('site.text') as csvfile:
            # reader = csv.DictReader(csvfile)
            # for row in reader:
              #   print(row)
-                
+        return data
+    
+    def informationBox_added_link(self,accion):
+        QMessageBox.information(self, "Added to favorite", "Title {}.".format(accion))
+    
+            
 class Cache:
-        '''
+    '''
     Behavior:  cache
     '''
     def __init__(self,title, save_link):
@@ -68,7 +75,7 @@ class Cache:
         
     def createCache(self):
         self.mycache = FileCache('appname', flag='cs')
-        self.mycache[]
+        #self.mycache[]
     
     def getCache(self):
         pass
@@ -86,12 +93,6 @@ class Cache:
                 
                 fd.write(chunk)
                 '''
-    
-    def informationBox_added_link(self,accion):
-        QMessageBox.information(self, "Added to favorite", "Title {}.".format(accion))
-                    
-        
-        
         
 
 data = User_Data('no title2','https://www.youtube.com/watch?v=IEEhzQoKtQU&ab_channel=CoreySchafer')

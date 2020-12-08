@@ -25,44 +25,32 @@ class User_Data(QDialog):
         self.save_title = title
         self.save_link = save_link
         self.__add_new = [self.save_title,self.save_link, self._getThumb()]
-        
-            
+                    
     def add_(self):
-        if os.path.exists('My_favorites.csv'): # check if exists
-        
-            with open('My_favorites.csv','a',newline='') as add_fave, open('My_favorites.csv','r',newline='') as open_fave:
+        if os.path.exists('My_favorites.csv'): # check if exists     
+            with open('.\data\My_favorites.csv','a', encoding='utf-8' ,newline='') as add_fave, open('.\data\My_favorites.csv','r',newline='') as open_fave:
                 
                 file_reader = csv.reader(open_fave) #read   
-                
-                self.link_writer = csv.writer(add_fave,  delimiter=',')
+                self.link_writer = csv.writer(add_fave)
                                         
                 if self.__add_new not in file_reader:
                     self.link_writer.writerow(self.__add_new)    
                     self.informationBox_added_link(self.save_title)
-                    
-                for row in file_reader:
-                    print(row[2])
-                    
+                                       
         else: # create new file
-            with open('My_favorites.csv','w') as add_fave:
+            with open('.\data\My_favorites.csv','w') as add_fave:
                 self.link_writer = csv.writer(add_fave,  delimiter=',')
-                header = ['Titles', 'Links','thumbnail_binary']
+                header = ['Titles', 'Links','thumbnail_bytes']
                 self.link_writer.writerow(header)
       
     def _getThumb(self):        
         self.Vthumbs = pafy.new(self.save_link)         
         Turl = self.Vthumbs.thumb
-        data = urllib.request.urlopen(Turl).read()
-        
-        links = requests.get(Turl)
-        #with open('site.text') as csvfile:
-           # reader = csv.DictReader(csvfile)
-           # for row in reader:
-             #   print(row)
+        data = urllib.request.urlopen(Turl).read()   
         return data
     
-    def informationBox_added_link(self,accion):
-        QMessageBox.information(self, "Added to favorite", "Title {}.".format(accion))
+    def informationBox_added_link(self,do):
+        QMessageBox.information(self, "Added to favorite", "Title {}.".format(do))
     
             
 class Cache:
@@ -93,12 +81,11 @@ class Cache:
                 
                 fd.write(chunk)
                 '''
-        
-
+'''    
 data = User_Data('no title2','https://www.youtube.com/watch?v=IEEhzQoKtQU&ab_channel=CoreySchafer')
 data.add_()
 data._getThumb()
-
+'''
 class ImageTitleLink:
     '''
     Storage of thumbnail and label

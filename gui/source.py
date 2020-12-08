@@ -8,6 +8,7 @@ import csv
 import time
 import sys
 import os.path
+import codecs
 import threading
 # import _thread
 from PyQt5 import QtCore
@@ -244,7 +245,7 @@ class MainWindow(QMainWindow):
         self.hrefs = []
         self.titles = []
     # search data id=video-title
-        for attributes in self.videoTitle[0:55]:            
+        for attributes in self.videoTitle[0:3]:            
             if attributes.get_attribute("href") is not None:
                 self.href = attributes.get_attribute("href")
                 self.title = attributes.text
@@ -265,33 +266,75 @@ class MainWindow(QMainWindow):
 # %%%%%%%%%%%%%%%%%%%%%%%%%  GroupBox %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     def Group_result(self):
-        
     
         for num_atr, atrkey in enumerate(self.collectionhref):
             ''' Thumbnail '''
+            self.label_link = pafy.new(self.collectionhref[atrkey])     
+            self.label_link.title
             
-            self.thumbs = self.collectionhref[atrkey]
-            self.Vthumbs = pafy.new(self.thumbs) 
-            
-            Turl = self.Vthumbs.thumb
-            data = urllib.request.urlopen(Turl).read()
-            
-            self.img = QImage()
-            self.img.loadFromData(data)
-            
-            self.thumbclickable = ClickQLable(self)
-            self.thumbclickable.setCursor(Qt.PointingHandCursor)
-            
-            self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
-            self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
-            self.thumbclickable.setPixmap(self.thumbpixmap)
-            self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
-            self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
-            
+            if os.path.exists('My_favorites.csv'): # must changeable filename
+                with open('.\data\My_favorites.csv',encoding='utf-8' ,newline='') as open_fave:
+                    file_reader = csv.reader(open_fave) #read
+                    next(file_reader)
+                    next(file_reader)
+                    try:
+                        for row in file_reader:
+                            if self.label_link.title == row[0]:
+                                
+                                data = bytes(row[2],encoding='utf-8')
+                                print(data)
+                                self.img = QImage()
+                                self.img.loadFromData(data)
+                                
+                                self.thumbclickable = ClickQLable(self)
+                                self.thumbclickable.setCursor(Qt.PointingHandCursor)
+                                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
+                                self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
+                                self.thumbclickable.setPixmap(self.thumbpixmap)
+                                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
+                                print('im in encoding...')
+                            else:           
+                                self.thumbs = self.collectionhref[atrkey]
+                                self.Vthumbs = pafy.new(self.thumbs) 
+                                
+                                Turl = self.Vthumbs.thumb
+                                data = urllib.request.urlopen(Turl).read()                
+                                self.img = QImage()
+                                self.img.loadFromData(data)
+                                
+                                self.thumbclickable = ClickQLable(self)
+                                self.thumbclickable.setCursor(Qt.PointingHandCursor)
+                                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
+                                self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
+                                self.thumbclickable.setPixmap(self.thumbpixmap)
+                                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
+                                print('im in else...')
+                    except AttributeError:
+                        print('no attribute img')
+            else:
+                self.thumbs = self.collectionhref[atrkey]
+                self.Vthumbs = pafy.new(self.thumbs) 
+                print(num_atr,'thumb else.......')
+                Turl = self.Vthumbs.thumb
+                data = urllib.request.urlopen(Turl).read()  
+                self.img = QImage()
+                self.img.loadFromData(data)
+                self.thumbclickable = ClickQLable(self)
+                self.thumbclickable.setCursor(Qt.PointingHandCursor)
+                
+                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
+                self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
+                self.thumbclickable.setPixmap(self.thumbpixmap)
+                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
+
             #--------------------------------------------------
             ''' Label'''
             
-            self.label_link = pafy.new(self.collectionhref[atrkey]) 
+            print('im in label...')
+            
             self.label_title = ClickQLable((f"{self.label_link.title[:55]}-\n{self.label_link.title[55:]}  \n Author: {self.label_link.author} ||  VIEWS:{self.label_link.viewcount} ||: {self.label_link.duration}")) #
             self.label_title.setFont(QFont("Noto Sans",10))  
             self.label_title.setCursor(Qt.PointingHandCursor)
@@ -306,6 +349,7 @@ class MainWindow(QMainWindow):
             
             #--------------------------------------------------
             ''' Star button '''
+            print('im in star button')
             self.keybutton = atrkey     
             
             self._title = self.label_link.title
@@ -313,7 +357,7 @@ class MainWindow(QMainWindow):
             self._title_link = [self._title,self._link]
             
             if os.path.exists('My_favorites.csv'):
-                with open('My_favorites.csv','r',newline='') as open_fave:
+                with open('.\data\My_favorites.csv','r',newline='') as open_fave:
                     file_reader = csv.reader(open_fave) #read  
                     if self._title_link not in file_reader:
                         self.keybutton  = QPushButton("⭐",self)
@@ -335,6 +379,7 @@ class MainWindow(QMainWindow):
             
             #--------------------------------------------------
             ''' Download button '''
+            print('im in downlaod button')
             self.d_link = atrkey
             self.d_link = QPushButton(QIcon(".\Images\download.png"),"",self)
             

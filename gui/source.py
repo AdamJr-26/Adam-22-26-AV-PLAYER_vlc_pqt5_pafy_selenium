@@ -10,6 +10,8 @@ import sys
 import os.path
 import codecs
 import threading
+import concurrent.futures
+from fcache.cache import FileCache
 # import _thread
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QTimer, QRunnable , pyqtSignal
@@ -30,6 +32,7 @@ from selenium.webdriver.chrome.options import Options
 
 from gui.downloadWin import DownloadWindow
 from gui.user_data import User_Data
+from gui.user_data import Cache
 
 ###############################################################################################
 ###############################################################################################
@@ -60,8 +63,11 @@ class ClickQLable(QLabel):
 
 
 class MainWindow(QMainWindow):
+    
     def __init__(self):
+
         QMainWindow.__init__(self)
+
         #User_Data.__init__(self)
 ############################################################################################
 # %%%%%%%%%%%%%%%%%%%%%%%%% Instances  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
@@ -84,7 +90,7 @@ class MainWindow(QMainWindow):
     # exit Action
         exitAction = QAction("Exit", self) #exit
         exitAction.setShortcut("Ctrl+Q")
-        exitAction.triggered.connect(self.exit_)# slot
+        exitAction.triggered.connect(self._exit_)# slot
     # add action
         self.file.addAction(exitAction)
         
@@ -106,7 +112,7 @@ class MainWindow(QMainWindow):
     def initWidgets(self):
         self.setWindowOpacity(1) 
         winpalette = self.palette()
-        winpalette.setColor(QPalette.Window, QColor("LightSteelBlue"))
+        winpalette.setColor(QPalette.Window, QColor(40,40,40))
         self.setPalette(winpalette)
         
         #----------------------
@@ -115,8 +121,9 @@ class MainWindow(QMainWindow):
         
         
 ##################################################################################################
-        self.welcome = QLabel("Welcome to YouTube Player  ")
-        self.welcome.setFont(QFont("Noto Sans", 16))
+        self.welcome = QLabel("YouTube")
+        self.welcome.setStyleSheet('font: 20px Robot bold; color: white; ')
+        self.welcome.setFont(QFont("Robot", 16))
         self.searchBtn = QPushButton("Search")
         self.searchBtn.setFont(QFont("Noto Sans", 16,QFont.Bold))
         self.searchBtn.setFixedSize(90,30)
@@ -125,11 +132,9 @@ class MainWindow(QMainWindow):
         
 
         self.searchBar = QLineEdit(self)
-        self.searchBar.setFixedSize(250,30)
-        self.font = self.searchBar.font()
-        self.font.setPointSize(1)
+        self.searchBar.setFixedSize(257,35)
+        self.searchBar.setStyleSheet('background-color: rgb(0,0,0); color: white; font: 20px Roboto bold ;border-radius: 3px; border: 1px solid DimGray;')
         self.searchBar.returnPressed.connect(self.searchBtn.click)
-        
         self.searchBox =QHBoxLayout()
         self.searchBox.addWidget(self.welcome)
         self.searchBox.addWidget(self.searchBar)
@@ -146,7 +151,7 @@ class MainWindow(QMainWindow):
         
         self.videoframe = QFrame()
         self.vpalette = self.videoframe.palette()
-        self.vpalette.setColor(QPalette.Window, QColor(120,120,120))
+        self.vpalette.setColor(QPalette.Window, QColor('DimGray'))
         
         self.videoframe.setPalette(self.vpalette)
         self.videoframe.setAutoFillBackground(True)
@@ -159,7 +164,7 @@ class MainWindow(QMainWindow):
         self.volume = QSlider(Qt.Horizontal)
         self.volume.setMaximum(120)
         self.volume.setValue(self.mediaplayer.audio_get_volume())
-        self.volume.valueChanged.connect(self.setVolume)
+        self.volume.valueChanged.connect(self._setVolume)
        
         #self.volume.setValue(self.mediaplayer.audio_get_volume())
         
@@ -235,6 +240,8 @@ class MainWindow(QMainWindow):
         
     
     def thread_result(self):
+        
+        
         self.searchtext = self.searchBar.text().replace(' ', '+')
         self.openbtn.setEnabled(False)
         self.myurl = f"https://www.youtube.com/results?search_query={self.searchtext}"
@@ -245,14 +252,13 @@ class MainWindow(QMainWindow):
         self.hrefs = []
         self.titles = []
     # search data id=video-title
-        for attributes in self.videoTitle[0:3]:            
+        for attributes in self.videoTitle[0:55]:            
             if attributes.get_attribute("href") is not None:
                 self.href = attributes.get_attribute("href")
                 self.title = attributes.text
                 self.hrefs.append(self.href)
                 self.titles.append(self.title)
                 
-
         self.HGroupBox = QGroupBox(f"SEARCHED: {self.searchBar.text()} RESULTS: {len(self.titles)}") # len of results
         
         self.collectionhref = {}
@@ -260,82 +266,64 @@ class MainWindow(QMainWindow):
         for num_atr, atr in enumerate(self.hrefs):
             self.collectionhref["link_%s" %num_atr] = atr
             
-        self.Group_result() # thread this
+        self.Group_result()
+
         
 ############################################################################################
 # %%%%%%%%%%%%%%%%%%%%%%%%%  GroupBox %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     def Group_result(self):
-    
+        
         for num_atr, atrkey in enumerate(self.collectionhref):
-            ''' Thumbnail '''
-            self.label_link = pafy.new(self.collectionhref[atrkey])     
-            self.label_link.title
+                        
+            #------------------------------------------------------
+            ''' ````````` '''
             
-            if os.path.exists('My_favorites.csv'): # must changeable filename
-                with open('.\data\My_favorites.csv',encoding='utf-8' ,newline='') as open_fave:
-                    file_reader = csv.reader(open_fave) #read
-                    next(file_reader)
-                    next(file_reader)
-                    try:
-                        for row in file_reader:
-                            if self.label_link.title == row[0]:
-                                
-                                data = bytes(row[2],encoding='utf-8')
-                                print(data)
-                                self.img = QImage()
-                                self.img.loadFromData(data)
-                                
-                                self.thumbclickable = ClickQLable(self)
-                                self.thumbclickable.setCursor(Qt.PointingHandCursor)
-                                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
-                                self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
-                                self.thumbclickable.setPixmap(self.thumbpixmap)
-                                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
-                                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
-                                print('im in encoding...')
-                            else:           
-                                self.thumbs = self.collectionhref[atrkey]
-                                self.Vthumbs = pafy.new(self.thumbs) 
-                                
-                                Turl = self.Vthumbs.thumb
-                                data = urllib.request.urlopen(Turl).read()                
-                                self.img = QImage()
-                                self.img.loadFromData(data)
-                                
-                                self.thumbclickable = ClickQLable(self)
-                                self.thumbclickable.setCursor(Qt.PointingHandCursor)
-                                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
-                                self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
-                                self.thumbclickable.setPixmap(self.thumbpixmap)
-                                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
-                                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
-                                print('im in else...')
-                    except AttributeError:
-                        print('no attribute img')
+            self.label_link = pafy.new(self.collectionhref[atrkey])     
+            self.label_link_title = self.label_link.title
+            self.check_thumbnail = Cache()
+            self.thumbnail_storage = self.check_thumbnail.getCache()
+            
+            if self.label_link_title in self.thumbnail_storage:
+                print(self.label_link_title)
+            
+                ''' Thumbnail''' 
+                self.data = self.thumbnail_storage[self.label_link_title]                
+                self.img = QImage()
+                self.img.loadFromData(self.data)
+                self.thumbclickable = ClickQLable(self)
+                self.thumbclickable.setCursor(Qt.PointingHandCursor)
+                
+                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;border: 2px solid blue')
+                self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
+                self.thumbclickable.setPixmap(self.thumbpixmap)
+                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
             else:
                 self.thumbs = self.collectionhref[atrkey]
                 self.Vthumbs = pafy.new(self.thumbs) 
                 print(num_atr,'thumb else.......')
                 Turl = self.Vthumbs.thumb
-                data = urllib.request.urlopen(Turl).read()  
+                self.data = urllib.request.urlopen(Turl).read()  
                 self.img = QImage()
-                self.img.loadFromData(data)
+                self.img.loadFromData(self.data)
                 self.thumbclickable = ClickQLable(self)
                 self.thumbclickable.setCursor(Qt.PointingHandCursor)
                 
-                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;')
+                self.thumbclickable.setStyleSheet('min-height:30px;max-width:100px;border: 2px solid green')
                 self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
                 self.thumbclickable.setPixmap(self.thumbpixmap)
                 self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
-                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
-
+                self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
+            
+            # add cache to Cache class
+            thumbnail_cache_bytes = Cache(self.label_link_title, self.data)
+            thumbnail_cache_bytes.createCache()
+            
             #--------------------------------------------------
             ''' Label'''
-            
-            print('im in label...')
-            
-            self.label_title = ClickQLable((f"{self.label_link.title[:55]}-\n{self.label_link.title[55:]}  \n Author: {self.label_link.author} ||  VIEWS:{self.label_link.viewcount} ||: {self.label_link.duration}")) #
+                        
+            self.label_title = ClickQLable((f"{self.label_link_title[:55]}-\n{self.label_link_title[55:]}  \n Author: {self.label_link.author} ||  VIEWS:{self.label_link.viewcount} ||: {self.label_link.duration}")) #
             self.label_title.setFont(QFont("Noto Sans",10))  
             self.label_title.setCursor(Qt.PointingHandCursor)
             
@@ -344,19 +332,19 @@ class MainWindow(QMainWindow):
             else:
                 self.label_title.setStyleSheet("border: 1px solid green; background-color: DarkGray;color:black;border-radius: 3px;max-height:60px;") 
             
-            self.label_title.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.playvideo(x))
+            self.label_title.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
             self.GridLayout.addWidget(self.label_title,num_atr,1)
-            
+            print('im in label...')
             #--------------------------------------------------
             ''' Star button '''
-            print('im in star button')
+           
             self.keybutton = atrkey     
             
-            self._title = self.label_link.title
+            self._title = self.label_link_title
             self._link = self.collectionhref[atrkey]
             self._title_link = [self._title,self._link]
             
-            if os.path.exists('My_favorites.csv'):
+            if os.path.exists('.\data\My_favorites.csv'):
                 with open('.\data\My_favorites.csv','r',newline='') as open_fave:
                     file_reader = csv.reader(open_fave) #read  
                     if self._title_link not in file_reader:
@@ -376,10 +364,10 @@ class MainWindow(QMainWindow):
                 self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
                 self.keybutton.setToolTip(self.collectionhref[atrkey])
                     
-            
+            print('im in star button')
             #--------------------------------------------------
             ''' Download button '''
-            print('im in downlaod button')
+            
             self.d_link = atrkey
             self.d_link = QPushButton(QIcon(".\Images\download.png"),"",self)
             
@@ -389,9 +377,9 @@ class MainWindow(QMainWindow):
                 self.d_link.setStyleSheet("background-color: rgb(220, 20, 60);color:white;border-color:beige;font:  20px;max-width: 40px;min-height:30px;") 
             
             self.GridLayout.addWidget(self.d_link, num_atr,3)
-            self.d_link.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self.download_(x)) # self.timer.start()
+            self.d_link.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._download_(x)) # self.timer.start()
             self.d_link.setToolTip(self.collectionhref[atrkey])
-
+            print('im in downlaod button')
 
             self.next_atr = num_atr
             self.next_key = atrkey            
@@ -419,12 +407,12 @@ class MainWindow(QMainWindow):
 ############################################################################################
 # %%%%%%%%%%%%%%%%%%%%%%%%%  SLOTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    def exit_(self):
+    def _exit_(self):
         self.driver.close()
         sys.exit()
         
         
-    def setVolume(self, Volume):
+    def _setVolume(self, Volume):
         self.mediaplayer.audio_set_volume(Volume)
         
     def setPosition(self, position):
@@ -493,15 +481,15 @@ class MainWindow(QMainWindow):
         self.add_title = pafy.new(self.add_link)
         
         print(self.add_link, self.add_title.title)
-        self.data = User_Data(self.add_title.title, self.add_link)
-        self.data.add_()
+        self.data_fave = User_Data(self.add_title.title, self.add_link)
+        self.data_fave.add_()
         
         
     def OpenFavorites(self):
         '''Open your favorite list'''
         
         self.GridLayout = QGridLayout()
-        with open('.\data\My_favorites.csv','r',newline='') as open_fave:
+        with open('.\data\My_favorites.csv',encoding='utf-8') as open_fave:
             file_reader = csv.reader(open_fave) #read   
             next(file_reader)
             next(file_reader)
@@ -515,7 +503,7 @@ class MainWindow(QMainWindow):
             self.openbtn.setEnabled(False)
             # download thumbnail
     
-    def playvideo(self, url ): # connected to play now buttons
+    def _playvideo(self, url ): # connected to play now buttons
         self.url = url
         video = pafy.new(self.url)
 
@@ -551,10 +539,10 @@ class MainWindow(QMainWindow):
             self.statusBar.showMessage("time for videoposition ")
             
     
-    def download_(self,url):
-        urlD = url
+    def _download_(self,url):
+        _urlD = url
         if self.littlewindow is None:
-            self.littlewindow = DownloadWindow(urlD)
+            self.littlewindow = DownloadWindow(_urlD)
             self.littlewindow.show()
         else:
             self.littlewindow.close()
@@ -562,6 +550,6 @@ class MainWindow(QMainWindow):
 
         
 
-            
+
 
         

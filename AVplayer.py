@@ -8,3 +8,4 @@ if __name__ == "__main__":
     window.resize(1300, 700)
     window.show()
     sys.exit(app.exec_())
+    

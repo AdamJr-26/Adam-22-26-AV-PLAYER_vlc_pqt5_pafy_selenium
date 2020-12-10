@@ -19,7 +19,7 @@ class User_Data(QDialog):
     '''
     _link_writer = None
     __add_new = None
-    def __init__(self,title, save_link, parent=None):
+    def __init__(self, save_link, title, parent=None):
         super(User_Data,self).__init__(parent=None)
         
         self._save_title = title
@@ -27,6 +27,7 @@ class User_Data(QDialog):
         self.__add_new = [self._save_title,self._save_link]
                     
     def add_(self):
+        #self._getThumb()
         if os.path.exists('.\data\My_favorites.csv'): # check if exists     
             with open('.\data\My_favorites.csv','a', encoding='utf-8', newline='') as add_fave, open('.\data\My_favorites.csv','r',newline='') as open_fave:
                 
@@ -43,43 +44,32 @@ class User_Data(QDialog):
                 header = ['Titles', 'Links']
                 self._link_writer.writerow(header)
       
-    def _getThumb(self):        
-        
-        pass
+    def _getThumb(self):
+        self.thumbnail_cache = FileCache('appname', flag='cs')        
+        if self._save_link not in self.thumbnail_cache:
+            self.thumbnail_cache[self._save_link] = self.thumbnail_bytes
     
-    def informationBox_added_link(self,do):
-        QMessageBox.information(self, "Added to favorite", "Title {}.".format(do))
-    
-            
+    def informationBox_added_link(self,title):
+        QMessageBox.information(self, "Added to favorite", "Title {}.".format(title))
+     
 class Cache:
     '''
     Behavior:  cache
     '''
-    def __init__(self,title =None,thumb_bytes=None):
-        self.save_title = title
+    def __init__(self,link =None,thumb_bytes=None):
+        self.save_link = link
         self.thumbnail_bytes = thumb_bytes
         self.thumbnail_cache = FileCache('appname', flag='cs') # change the cache location filename to AVplayer --------------
         
     def createCache(self):
-        if self.save_title not in self.thumbnail_cache:
-            self.thumbnail_cache[self.save_title] = self.thumbnail_bytes
+        if self.save_link not in self.thumbnail_cache:
+            self.thumbnail_cache[self.save_link] = self.thumbnail_bytes
     
     def getCache(self):
         return self.thumbnail_cache
         
         
         
-        '''
-        print(data)
-        rawThumb = requests.get(Turl,stream=True)
-        
-        with open('new.csv', 'wb') as fd:
-            writer = csv.writer(fd,delimiter=',')
-            
-            for chunk in rawThumb.iter_content(chunk_size = 1024):
-                
-                fd.write(chunk)
-                '''
 '''    
 data = User_Data('no title2','https://www.youtube.com/watch?v=IEEhzQoKtQU&ab_channel=CoreySchafer')
 data.add_()

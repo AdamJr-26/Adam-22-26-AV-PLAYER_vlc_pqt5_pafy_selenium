@@ -16,7 +16,7 @@ from concurrent.futures import Future
 from fcache.cache import FileCache
 # import _thread
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QTimer, QRunnable , pyqtSignal, QUrl, QThreadPool
+from PyQt5.QtCore import Qt, QTimer, QRunnable , pyqtSignal, QUrl, QThreadPool,QThread
 from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap, QFont, QImage
 
 from PyQt5.QtWidgets import  (QWidget, QStatusBar, QApplication , QFileDialog,
@@ -64,11 +64,11 @@ class ClickQLable(QLabel):
         if self.now_click == "Click":
             self.clicked.emit(self.now_click)
 ############################################################################################
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow,QThread):
     def __init__(self,parent=None):
-        
+        QThread.__init__(self)
         QMainWindow.__init__(self)
-        
+        send_result = pyqtSignal(str,str,str,str) # 0,1,2,3
 
 # %%%%%%%%%%%%%%%%%%%%%%%%% Attributes  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
     # WEBDRIVER
@@ -280,6 +280,7 @@ class MainWindow(QMainWindow):
         
     
     def thread_result(self):
+        
         QApplication.processEvents()
         print('initiate chrome driver.......')
         self.searchtext = self.searchBar.text().replace(' ', '+')
@@ -306,28 +307,27 @@ class MainWindow(QMainWindow):
         for num_atr, atr in enumerate(self.hrefs):
             QApplication.processEvents()
             self.collectionhref["link_%s" %num_atr] = atr
+            
         
         self.HGroupBox = QGroupBox(f"SEARCHED: {self.searchBar.text()} RESULTS: {len(self.titles)}") # len of results
         self.HGroupBox.setStyleSheet('background-color:rgb(47,47,47);font:12px  Roboto Black; color:white;')
+        self.start()
+        self.send_result.connect(self.add_result_to_GridLayout)
         
-        self.Group_result()
-
-
-        
+    
 ############################################################################################
 # %%%%%%%%%%%%%%%%%%%%%%%%%  GroupBox %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     #@threaded
     def Group_result(self):
-        
         print('searching...............')
         self.labelStyleSheet = ('font: 12px Roboto Black; border-bottom: 1px solid DimGray; background-color: rgb(40,40,40);color: white;border-radius: 2px;max-height:60px;min-height:40px;')
         self.buttonStyleSheet = ('background-color:rgb(40,40,40); border:1px solid DodgerBlue; font: 20px Robot bold; border-radius: 2px;  min-width: 40px; min-height:40px; max-width:40px;')
         #thread here
-        
+                    
         for num_atr, atrkey in enumerate(self.collectionhref):        
             #------------------------------------------------------
             
-            QApplication.processEvents()
+            #QApplication.processEvents()
             ''' ````````` '''
             self.label_link = pafy.new(self.collectionhref[atrkey])     
             self.label_link_title = self.label_link.title
@@ -347,7 +347,8 @@ class MainWindow(QMainWindow):
                 self.thumbclickable.setStyleSheet('min-height:45px;max-width:100px;border: 1px solid DimGray')
                 self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
                 self.thumbclickable.setPixmap(self.thumbpixmap)
-                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                #self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                
                 self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
             else:
                 self.thumbs = self.collectionhref[atrkey]
@@ -363,7 +364,9 @@ class MainWindow(QMainWindow):
                 self.thumbclickable.setStyleSheet('min-height:45px;max-width:100px;border: 1px solid DimGray')
                 self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
                 self.thumbclickable.setPixmap(self.thumbpixmap)
-                self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                
+                #self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
+                
                 self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
             
             # add cache to Cache class
@@ -384,7 +387,7 @@ class MainWindow(QMainWindow):
                 self.label_title.setCursor(Qt.PointingHandCursor)
             
             self.label_title.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
-            self.GridLayout.addWidget(self.label_title,num_atr,1)
+            #self.GridLayout.addWidget(self.label_title,num_atr,1)
             print('im in label...')
             #--------------------------------------------------
             ''' Star button '''
@@ -404,7 +407,8 @@ class MainWindow(QMainWindow):
                         self.keybutton.setCursor(Qt.PointingHandCursor)
                         self.keybutton.setToolTip(self.collectionhref[atrkey])
                         self.keybutton.setStyleSheet(self.buttonStyleSheet)
-                        self.GridLayout.addWidget(self.keybutton,num_atr,2)
+                        
+                        #self.GridLayout.addWidget(self.keybutton,num_atr,2)
                         self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
                         
             else:
@@ -413,7 +417,8 @@ class MainWindow(QMainWindow):
                 self.keybutton.setCursor(Qt.PointingHandCursor)
                 self.keybutton.setToolTip(self.collectionhref[atrkey])
                 self.keybutton.setStyleSheet(self.buttonStyleSheet)
-                self.GridLayout.addWidget(self.keybutton,num_atr,2)
+                
+                #self.GridLayout.addWidget(self.keybutton,num_atr,2)
                 self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
                 
                     
@@ -430,7 +435,7 @@ class MainWindow(QMainWindow):
             else:
                 self.d_link.setStyleSheet(self.buttonStyleSheet )
             
-            self.GridLayout.addWidget(self.d_link, num_atr,3)
+            #self.GridLayout.addWidget(self.d_link, num_atr,3)
             self.d_link.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._download_(x)) # self.timer.start()
             self.d_link.setToolTip(self.collectionhref[atrkey])
             print('im in downlaod button')
@@ -453,6 +458,18 @@ class MainWindow(QMainWindow):
         print("done.....")
         #self.VboxGrid.addWidget(self.HGroupBox)
         #self.VboxGrid.addStretch(1)
+        
+    def add_result_to_GridLayout(self,thumbclickable,label_title,keybutton,d_link):
+        self.thumbclickable = thumbclickable
+        self.label_title = thumbclickable
+        self.keybutton = keybutton
+        self.d_link = d_link
+        for i in len(self.collectionhref):
+            self.GridLayout.addWidget(self.thumbclickable,i,0)
+            self.GridLayout.addWidget(self.thumbclickable,i,1)
+            self.GridLayout.addWidget(self.keybutton,i,2)
+            self.GridLayout.addWidget(self.d_link, i,3)
+        
        
 
 ############################################################################################
@@ -575,15 +592,22 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(video.title)
 
         self.mediaplayer.play()
-        if sys.platform.startswith('win32'): # platform identifier 
+        
+        if sys.platform.startswith("linux"):  # for Linux 
+            self.mediaplayer.set_xwindow(self.videoframe.winId())
+        elif sys.platform == "win32":  # for Windows
             self.mediaplayer.set_hwnd(self.videoframe.winId())
 
+        elif sys.platform == "darwin":  # for MacOS
+            self.mediaplayer.set_nsobject(self.videoframe.winId())
+        self.PlayPause()
+        
         time.sleep(3)
         if self.mediaplayer.is_playing():
             self.timer.start()
             self.pause_label.setPixmap(self.play)
             #-------------------------------
-            self.statusBar.showMessage("information of playing video")
+            self.statusBar.showMessage(video.rating)
             if self.mediaplayer.play() == -1:
                 self.statusBar.showMessage("Ready")
                 

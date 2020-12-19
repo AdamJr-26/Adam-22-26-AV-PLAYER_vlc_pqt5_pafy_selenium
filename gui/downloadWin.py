@@ -11,13 +11,11 @@ os.add_dll_directory(r'C:\Program Files\VideoLAN\VLC')
 import threading
 # import _thread
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QTimer, QRunnable , pyqtSignal
-from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap, QFont
-from PyQt5.QtWidgets import  (QWidget, QStatusBar,
-                             QScrollArea, QPushButton, QHBoxLayout, QGroupBox,
-                            QVBoxLayout,QLabel, QFrame,QLineEdit,
-                              QSlider , QAction,QProgressBar,
-                              QMainWindow, QGridLayout)
+from PyQt5.QtCore import  pyqtSignal
+from PyQt5.QtWidgets import  (QWidget,
+                             QPushButton, QHBoxLayout, 
+                            QVBoxLayout,QLabel, QLineEdit, QProgressBar,
+                              QMainWindow)
 
 ###################################################################
 
@@ -95,8 +93,7 @@ class DownloadWindow(QMainWindow):
             
             # add condition if it's not receiving or inter connection timeout
         
-        
-    @QtCore.pyqtSlot()
+
     def mp3F(self):        
         video_save = self.le_output.text()
         self.audiobest = self.audioD.streams[0]
@@ -104,7 +101,7 @@ class DownloadWindow(QMainWindow):
         threading.Thread(target=self.audiobest.download, kwargs={'filepath' : video_save, 'callback': self.download_info}, daemon=True).start()
         self.VdownloadLayout.addWidget(self.pbar)
         
-    @QtCore.pyqtSlot()
+
     def mp4F(self):
         
         video_save = self.le_output.text()

@@ -8,35 +8,27 @@ import csv
 import time
 import sys
 import os.path
-import codecs
 import threading
-import concurrent.futures
-from fcache.cache import FileCache
-# import _thread
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt, QTimer, QRunnable , pyqtSignal, QUrl
-from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap, QFont, QImage
+
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
+from PyQt5.QtGui import QIcon, QPalette, QColor, QPixmap,  QImage
 
 from PyQt5.QtWidgets import  (QWidget, QStatusBar, QApplication , QFileDialog,
                              QScrollArea, QPushButton, QHBoxLayout, QGroupBox,
                             QVBoxLayout,QLabel, QFrame,QLineEdit,
-                              QSlider , QAction,QProgressBar,
+                              QSlider , QAction,
                               QMainWindow, QGridLayout)
+
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent #gagamitn kapag papalitan na ng Qmediaplayer ang vlc
-###################################################################
 #import selenium
 from selenium import webdriver
 PATH = ".\pre-requisties\chromedriver.exe"
-
 
 from selenium.webdriver.chrome.options import Options
 
 from gui.downloadWin import DownloadWindow
 from gui.user_data import User_Data
 from gui.user_data import Cache
-
-###############################################################################################
-###############################################################################################
 
 # making clickable Qlabel 
 
@@ -61,17 +53,13 @@ class ClickQLable(QLabel):
     def performSingleClickAction(self):
         if self.now_click == "Click":
             self.clicked.emit(self.now_click)
-
-
-class MainWindow(QMainWindow,QWidget):
-    
-    def __init__(self,parent=None):
-        QWidget.__init__(self,parent)
-        QMainWindow.__init__(self)
-        
-        #User_Data.__init__(self)
 ############################################################################################
-# %%%%%%%%%%%%%%%%%%%%%%%%% Instances  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+
+
+class MainWindow(QMainWindow):
+    def __init__(self,parent=None):
+        QMainWindow.__init__(self)
+
     # WEBDRIVER
         option = Options()
         option.headless = True
@@ -101,6 +89,7 @@ class MainWindow(QMainWindow,QWidget):
         self.setWindowIcon(QIcon(".\Images\LU.png"))
         
         self.initWidgets()
+        self.filename = None
         self.isPaused = False
         self.littlewindow = None # kapag wala pang window 
         
@@ -108,7 +97,6 @@ class MainWindow(QMainWindow,QWidget):
 
 
 ############################################################################################
-# %%%%%%%%%%%%%%%%%%%%%%%%% USER INTERFACE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     def initWidgets(self):
         self.setWindowOpacity(1) 
@@ -147,8 +135,6 @@ class MainWindow(QMainWindow,QWidget):
         self.searchBox.addWidget(self.searchBtn)
         self.searchBox.addStretch(1)
         
-        
-        
         self.VboxGrid = QVBoxLayout(self)
 ##########################################################################################################
         
@@ -157,36 +143,41 @@ class MainWindow(QMainWindow,QWidget):
         self.vpalette = self.videoframe.palette()
         self.vpalette.setColor(QPalette.Window, QColor('Black')) ##########--------------->>>>>>>>>>>>>>>>
         
+        
+        
         self.videoframe.setPalette(self.vpalette)
         self.videoframe.setAutoFillBackground(True)
 
     # slider
         self.videoposition = QSlider(Qt.Horizontal, self)
-        self.videoposition.setStyleSheet('border: 1px solid;height: 4px; margin: 2px 0; background: Gray;')
+        self.videoposition.setStyleSheet('border: 1px solid;height: 4px; margin: 2px 0; background: Gray;max-height:12px;')
         self.videoposition.setFocusPolicy(Qt.NoFocus) #StrongFocus
         self.videoposition.setMaximum(1000)
         self.videoposition.sliderMoved.connect(self.setPosition)
     # Volume Slider
+        self.video_position_label = QLabel('')
+        #self.video_position_label.setValue(self.mediaplayer.get_position)
+        self.video_position_label.setStyleSheet('font: 10 Roboto Black;color:white')
+        
+
         
         self.volume = QSlider(Qt.Horizontal,self)
         self.volume.setRange(0,100)
         self.volume.setStyleSheet('border: 1px solid;height: 4px; margin: 2px 0; background: Gray;')
         self.volume.setMaximum(100)
-        self.volume.setPageStep(2)
+        self.volume.setPageStep(5)
         self.volume.setValue(self.mediaplayer.audio_get_volume())
-        self.volume.valueChanged.connect(self._setVolume)
         self.volume.valueChanged.connect(self.volumelabel_update)
+        self.volume.valueChanged.connect(self._setVolume)
         self.volumeLabel = QLabel('',self)
         self.volumeLabel.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
-        self.volumeLabel.setStyleSheet('font: 7px Robot Black;color:white ')
+        self.volumeLabel.setStyleSheet('font: 7px Robot Black;color:white;max-heigth:7')
         self.volumeLabel.setMinimumWidth(10)
         
         self.volumec = QLabel('',self)
         self.volumec.setAlignment(Qt.AlignCenter | Qt.AlignVCenter)
         self.volumec.setStyleSheet('font: 15px Robot Black;color:white ')
         self.volumec.setMinimumWidth(10)
-        
-        #self.volume.setValue(self.mediaplayer.audio_get_volume())
         
     # MEDIA PLAYER QPIXMAP
         
@@ -219,11 +210,11 @@ class MainWindow(QMainWindow,QWidget):
     # PLAY BUTTON        
         self.removeList = QPushButton("ReMove ThIs LiSt") # sa ilalim ng gridlayout
         self.favorites = QPushButton("My Favorites⭐")
-        self.favorites.setStyleSheet('font: 20px Roboto Black; border: 1px solid DodgerBlue; background-color: rgb(50,50,50);color: white;border-radius: 2px; max-height:30px;')
+        self.favorites.setStyleSheet('font: 12px Roboto Black; border: 1px solid DodgerBlue; background-color: rgb(50,50,50);color: DodgerBlue;border-radius: 2px; max-height:25px;')
         self.openBtn = QPushButton("OPEN")
-        self.openBtn.setStyleSheet('font: 20px Roboto Black; border: 1px solid DodgerBlue; background-color: rgb(50,50,50);color: white;border-radius: 2px; max-height:30px;')
+        self.openBtn.setStyleSheet('font: 12px Roboto Black; border: 1px solid DodgerBlue; background-color: rgb(50,50,50);color: DodgerBlue;border-radius: 2px; max-height:25px;')
         self.statusBar = QStatusBar()
-        self.statusBar.setFont(QFont("Noto Sans", 7))
+        self.statusBar.setStyleSheet('font: 12px Roboto Black; background-color: rgb(50,50,50);color: white;border-radius: 2px; max-height:25px;')
         self.statusBar.setFixedHeight(14)
     
     # Toggle buttons
@@ -236,7 +227,7 @@ class MainWindow(QMainWindow,QWidget):
         self.timer.timeout.connect(self.updatevideoposition)
         
     # Tooltip
-        self.videoposition.setToolTip("media running time position")
+        
         self.volume.setToolTip("Drag the Handle to change volume")
         self.volume.setToolTip("Volume")
         self.removeList.setToolTip("remove list from group box")
@@ -246,6 +237,7 @@ class MainWindow(QMainWindow,QWidget):
     # Horizonal layout for buttons
         self.Hbutton = QHBoxLayout()
         self.Hbutton.addStretch(1)
+        self.Hbutton.addWidget(self.video_position_label)
         self.Hbutton.addWidget(self.pause_label)
         self.Hbutton.addWidget(self.stop_label)
         self.Hbutton.addWidget(self.next_label)    
@@ -261,10 +253,11 @@ class MainWindow(QMainWindow,QWidget):
         self.Vbox.addLayout(self.searchBox)
         self.Vbox.addWidget(self.videoframe)
         self.Vbox.addWidget(self.videoposition)
-        self.Vbox.addLayout(self.Hbutton)
         self.Vbox.addWidget(self.statusBar)
-        self.statusBar.showMessage("Ready")
+        self.Vbox.addLayout(self.Hbutton)
         
+        self.statusBar.showMessage('Ready') #self.get_video_position_value
+        #self.Vbox.addStretch(0)
     # Final Layout        
         self.mainlayout = QHBoxLayout()
         self.mainlayout.addLayout(self.Vbox)   
@@ -274,9 +267,15 @@ class MainWindow(QMainWindow,QWidget):
     # add to central widget
         self.widget.setLayout(self.mainlayout)
         
-    
+    def run_thrad(self):
+        try:
+            search = threading.Thread(target=self.thread_result)
+            search.start()
+        except:
+            print('unable to execute this thread')
+            
     def thread_result(self):
-        
+        QApplication.processEvents()
         print('initiate chrome driver.......')
         self.searchtext = self.searchBar.text().replace(' ', '+')
         
@@ -289,38 +288,41 @@ class MainWindow(QMainWindow,QWidget):
         self.hrefs = []
         self.titles = []
     # search data id=video-title
-        for attributes in self.videoTitle[0:10]:            
+        for attributes in self.videoTitle[0:55]:    
+            QApplication.processEvents()
             if attributes.get_attribute("href") is not None:
                 self.href = attributes.get_attribute("href")
                 self.title = attributes.text
                 self.hrefs.append(self.href)
                 self.titles.append(self.title)
                 
-        
         self.collectionhref = {}
         
         for num_atr, atr in enumerate(self.hrefs):
+            QApplication.processEvents()
             self.collectionhref["link_%s" %num_atr] = atr
-            
         
         self.HGroupBox = QGroupBox(f"SEARCHED: {self.searchBar.text()} RESULTS: {len(self.titles)}") # len of results
         self.HGroupBox.setStyleSheet('background-color:rgb(47,47,47);font:12px  Roboto Black; color:white;')
+        
+        
         self.Group_result()
-############################################################################################
-# %%%%%%%%%%%%%%%%%%%%%%%%%  GroupBox %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     def Group_result(self):
+        
         print('searching...............')
         self.labelStyleSheet = ('font: 12px Roboto Black; border-bottom: 1px solid DimGray; background-color: rgb(40,40,40);color: white;border-radius: 2px;max-height:60px;min-height:40px;')
         self.buttonStyleSheet = ('background-color:rgb(40,40,40); border:1px solid DodgerBlue; font: 20px Robot bold; border-radius: 2px;  min-width: 40px; min-height:40px; max-width:40px;')
         #thread here
-                    
+        
         for num_atr, atrkey in enumerate(self.collectionhref):        
             #------------------------------------------------------
-            ''' ````````` '''
             
+            QApplication.processEvents()
+            ''' ````````` '''
             self.label_link = pafy.new(self.collectionhref[atrkey])     
             self.label_link_title = self.label_link.title
+            
             self.check_thumbnail = Cache()
             self.thumbnail_storage = self.check_thumbnail.getCache()
             
@@ -334,9 +336,10 @@ class MainWindow(QMainWindow,QWidget):
                 self.thumbclickable = ClickQLable(self)
                 self.thumbclickable.setCursor(Qt.PointingHandCursor)
                 
-                self.thumbclickable.setStyleSheet('min-height:45px;max-width:100px;border: 1px solid DimGray')
+                self.thumbclickable.setStyleSheet('min-height:45px;max-width:120px;border: 1px solid DimGray')
                 self.thumbpixmap = QPixmap(self.img)  #.\Images\thumb.png      
                 self.thumbclickable.setPixmap(self.thumbpixmap)
+                
                 self.GridLayout.addWidget(self.thumbclickable,num_atr,0)
                 self.thumbclickable.clicked.connect(lambda state, x= self.collectionhref[atrkey]: self._playvideo(x))
             else:
@@ -392,18 +395,20 @@ class MainWindow(QMainWindow,QWidget):
                         self.keybutton  = QPushButton("⭐",self)
                         self.keybutton.setEnabled(True)
                         self.keybutton.setCursor(Qt.PointingHandCursor)
+                        self.keybutton.setToolTip(self.collectionhref[atrkey])
                         self.keybutton.setStyleSheet(self.buttonStyleSheet)
                         self.GridLayout.addWidget(self.keybutton,num_atr,2)
                         self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
-                        self.keybutton.setToolTip(self.collectionhref[atrkey])
+                        
             else:
                 self.keybutton  = QPushButton("⭐",self)
                 self.keybutton.setEnabled(True)
                 self.keybutton.setCursor(Qt.PointingHandCursor)
+                self.keybutton.setToolTip(self.collectionhref[atrkey])
                 self.keybutton.setStyleSheet(self.buttonStyleSheet)
                 self.GridLayout.addWidget(self.keybutton,num_atr,2)
                 self.keybutton.clicked.connect(lambda state, save_link= self.collectionhref[atrkey]: self.addFavorites(save_link)) # connect to href 
-                self.keybutton.setToolTip(self.collectionhref[atrkey])
+                
                     
             print('im in star button')
             #--------------------------------------------------
@@ -424,37 +429,28 @@ class MainWindow(QMainWindow,QWidget):
             print('im in downlaod button')
 
             self.next_atr = num_atr
-            self.next_key = atrkey            
-        
-        
-    ##############################################################################
-
+            self.next_key = atrkey    
+            
+        self.scroll = QScrollArea()  
         self.HGroupBox.setLayout(self.GridLayout)
-        #self.HGroupBox.setLayout(self.removeList)
-        
-        self.scroll = QScrollArea()
         self.scroll.setWidget(self.HGroupBox)
-        #self.scroll.setWidget(self.removeList)
         self.scroll.setWidgetResizable(True)
-
         self.VboxGrid.addWidget(self.scroll)
         print("done.....")
-        #self.VboxGrid.addWidget(self.HGroupBox)
-        #self.VboxGrid.addStretch(1)
        
 
 ############################################################################################
-# %%%%%%%%%%%%%%%%%%%%%%%%%  SLOTS  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     def _exit_(self):
         self.driver.close()
         sys.exit()
         
+                
     def volumelabel_update(self,value):
+        int(value)
         if value <= 0:
             self.lvl0 = QPixmap('.\Images\level0.png')
-            self.volumeLabel.setPixmap(self.lvl0)
-            
+            self.volumeLabel.setPixmap(self.lvl0)    
         elif value != 0 and value <= 33:
             self.lvl1 = QPixmap('.\Images\level1.png')
             self.volumeLabel.setPixmap(self.lvl1)
@@ -465,19 +461,20 @@ class MainWindow(QMainWindow,QWidget):
             self.lvl3 = QPixmap('.\Images\level3.png')
             self.volumeLabel.setPixmap(self.lvl3)
         self.volumec.setText(str(value))
-    
+        
     def _setVolume(self, Volume):
         self.mediaplayer.audio_set_volume(Volume)
-        
+                
     def setPosition(self, position):
         self.mediaplayer.set_position(position / 1000)
         
     def updatevideoposition(self):
-        self.videoposition.setValue(self.mediaplayer.get_position() * 1000)
+        self.videoposition.setValue(self.mediaplayer.get_position() * 1000.0)
         if not self.mediaplayer.is_playing():
             self.timer.stop()
             if not self.isPaused:
                 self.stop_()
+        
    
     def PlayPause(self):
         if self.mediaplayer.is_playing():
@@ -487,15 +484,18 @@ class MainWindow(QMainWindow,QWidget):
         else:
             if self.mediaplayer.play() == -1:
                 self.mediaplayer.play()
+                self.pause_label.setPixmap(self.pause)
+                
+            else:
                 self.pause_label.setPixmap(self.play)
-                return
-            self.pause_label.setPixmap(self.play)
-            self.timer.start()
-            self.isPaused = False
+                self.timer.start()
+                self.isPaused = False
 
-    def stop_(self): 
-        self.mediaplayer.stop()
+    def stop_(self): # if nothing playing babalik sa default ang mga button
         self.pause_label.setPixmap(self.pause)
+        self.statusBar.showMessage('Ready')
+        self.setWindowTitle('AV-Player')
+        self.mediaplayer.stop()
             
     def next_(self): # kailangan ko gumawa ng media player list :)  
         print(self.collectionhref)
@@ -505,15 +505,31 @@ class MainWindow(QMainWindow,QWidget):
     
     
     def OpenMedia(self):
-        """Open a media file in a MediaPlayer
-        """
-        filename, _ = QFileDialog.getOpenFileName(self, "Open Video")
+        try:
+            if self.filename is None:
+                self.filename = QFileDialog.getOpenFileName(self, "Open File", os.path.expanduser('~'))[0]
+                print(self.filename)
+                media = self._player.media_new(self.filename) # the actual video source
+                
+                self.mediaplayer.set_media(media)
+        
+                self.mediaplayer.play()
+                if sys.platform.startswith('win32'): # platform identifier 
+                    self.mediaplayer.set_hwnd(self.videoframe.winId())
+        
+                time.sleep(1)
+                if self.mediaplayer.is_playing():
+                    self.timer.start()
+                    self.pause_label.setPixmap(self.play)
+                    print('playing')
+                    #-------------------------------
+                    self.statusBar.showMessage(self.filename)
+                    self.statusBar.setStyleSheet('font: 12px Roboto Black; background-color: rgb(50,50,50);color: white;border-radius: 2px;max-height:16px')
+        except:
+            self.statusBar.showMessage('Sorry , Unable to play this video')
+            self.statusBar.setStyleSheet('font: 12px Roboto Black; background-color: rgb(50,50,50);color: white;border-radius: 2px;max-height:16px')
+                
 
-        if filename != '':
-            self.mediaplayer.set_media(QMediaContent(QUrl.fromLocalFile(filename)))
-            self.playBtn.setEnabled(True)
-       
-            
     def addFavorites(self, save_link):
         ''' there you can add your favorites link/youtube videos to a local storage (csv)'''
         
@@ -539,9 +555,15 @@ class MainWindow(QMainWindow,QWidget):
             self.collectionhref = {}
             for num_atr, row in enumerate(file_reader):
                 self.collectionhref["link_%s" %num_atr] = row[1]
-            
             self.HGroupBox.setStyleSheet('background-color:rgb(47,47,47);font:12px  Roboto Black; color:white;')
-            self.Group_result() # thread this
+            self.Group_result()
+            '''
+            try:
+                threading.Thread(target=self.Group_result).start()
+             # thread this
+            except:
+                print('unable to execute this thread from openFavorites')
+            '''
             
             # download thumbnail
     
@@ -551,7 +573,9 @@ class MainWindow(QMainWindow,QWidget):
 
         self.best = video.streams[0]
         self.best = video.getbest()
-
+        self.rate = video.rating
+        
+        self.rates = str(self.rate)
         self.best.resolution      
         # creating vlc media player object 
         media = self._player.media_new(self.best.url) # the actual video source
@@ -559,27 +583,18 @@ class MainWindow(QMainWindow,QWidget):
         self.setWindowTitle(video.title)
 
         self.mediaplayer.play()
-        
-        if sys.platform.startswith("linux"):  # for Linux using the X Server
-            self.mediaplayer.set_xwindow(self.videoframe.winId())
-        elif sys.platform == "win32":  # for Windows
+        if sys.platform.startswith('win32'): # platform identifier 
             self.mediaplayer.set_hwnd(self.videoframe.winId())
 
-        elif sys.platform == "darwin":  # for MacOS
-            self.mediaplayer.set_nsobject(self.videoframe.winId())
-        self.PlayPause()
-        
         time.sleep(3)
         if self.mediaplayer.is_playing():
             self.timer.start()
             self.pause_label.setPixmap(self.play)
-            
-            
-            
             #-------------------------------
-            self.statusBar.showMessage("time for videoposition ")
+            self.statusBar.showMessage(f'RATING: {str(self.rates[:3])}/5')
+            self.statusBar.setStyleSheet('font: 12px Roboto Black; background-color: rgb(50,50,50);color: white;border-radius: 2px;max-height:16px')
             
-    
+            
     def _download_(self,url):
         _urlD = url
         if self.littlewindow is None:
